@@ -64,7 +64,10 @@ xfs_extent_busy_trim(struct xfs_alloc_arg *args, xfs_agblock_t *bno,
 
 void
 xfs_extent_busy_flush(struct xfs_mount *mp, struct xfs_perag *pag,
-	unsigned discards);
+	unsigned busy_gen);
+
+void
+xfs_extent_busy_wait_all(struct xfs_mount *mp);
 
 int
 xfs_extent_busy_ag_cmp(void *priv, struct list_head *a, struct list_head *b);

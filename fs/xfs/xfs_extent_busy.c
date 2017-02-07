@@ -335,10 +335,11 @@ restart:
  * args->minlen no suitable extent could be found, and the higher level
  * code needs to force out the log and retry the allocation.
  *
- * Return the current discard generation for the AG if the file system
- * has online discard enabled.  This value can be used to wait for
- * the trimmed extent to become fully available if the AG is running out
- * of space.
+ * Return the current busy generation for the AG if the extent is busy. This
+ * value can be used to wait for at least one of the currently busy extents
+ * to be cleared. Note that the busy list is not guaranteed to be empty after
+ * the gen is woken. The state of a specific extent must always be confirmed
+ * with another call to xfs_extent_busy_trim() before it can be used.
  */
 bool
 xfs_extent_busy_trim(
@@ -510,6 +511,7 @@ restart:
 		flen = fend - fbno;
 	}
 out:
+
 	if (fbno != *bno || flen != *len) {
 		trace_xfs_extent_busy_trim(args->mp, args->agno, *bno, *len,
 					  fbno, flen);
@@ -624,6 +626,28 @@ xfs_extent_busy_flush(
 	} while (1);
 
 	finish_wait(&pag->pagb_wait, &wait);
+}
+
+void
+xfs_extent_busy_wait_all(
+	struct xfs_mount	*mp)
+{
+	DEFINE_WAIT		(wait);
+	xfs_agnumber_t		agno;
+
+	for (agno = 0; agno < mp->m_sb.sb_agcount; agno++) {
+		struct xfs_perag *pag = xfs_perag_get(mp, agno);
+
+		do {
+			prepare_to_wait(&pag->pagb_wait, &wait, TASK_KILLABLE);
+			if  (RB_EMPTY_ROOT(&pag->pagb_tree))
+				break;
+			schedule();
+		} while (1);
+		finish_wait(&pag->pagb_wait, &wait);
+
+		xfs_perag_put(pag);
+	}
 }
 
 /*
