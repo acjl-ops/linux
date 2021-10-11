@@ -389,7 +389,6 @@ static void slob_free(void *block, int size)
 
 	if (unlikely(ZERO_OR_NULL_PTR(block)))
 		return;
-	BUG_ON(!size);
 
 	sp = virt_to_page(block);
 	units = SLOB_UNITS(size);
@@ -556,6 +555,7 @@ void kfree(const void *block)
 	if (PageSlab(sp)) {
 		int align = max_t(size_t, ARCH_KMALLOC_MINALIGN, ARCH_SLAB_MINALIGN);
 		unsigned int *m = (unsigned int *)(block - align);
+		BUG_ON(!*m || *m > (PAGE_SIZE - align));
 		slob_free(m, *m + align);
 	} else {
 		unsigned int order = compound_order(sp);
@@ -649,8 +649,10 @@ EXPORT_SYMBOL(kmem_cache_alloc_node);
 
 static void __kmem_cache_free(void *b, int size)
 {
-	if (size < PAGE_SIZE)
+	if (size < PAGE_SIZE) {
+		BUG_ON(!size);
 		slob_free(b, size);
+	}
 	else
 		slob_free_pages(b, get_order(size));
 }
