@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 #include "bcm2835-rpi.dtsi"
 
-#include <dt-bindings/power/raspberrypi-power.h>
 #include <dt-bindings/reset/raspberrypi,firmware-reset.h>
 
 / {
@@ -16,6 +15,7 @@
 		ethernet0 = &genet;
 		pcie0 = &pcie0;
 		blconfig = &blconfig;
+		blpubkey = &blpubkey;
 	};
 };
 
@@ -68,6 +68,18 @@
 		no-map;
 		status = "disabled";
 	};
+	/*
+	 * RPi4 will copy the binary public key blob (if present) from the bootloader
+	 * into memory for use by the OS.
+	 */
+	blpubkey: nvram@1 {
+		compatible = "raspberrypi,bootloader-public-key", "nvmem-rmem";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		reg = <0x0 0x0 0x0>;
+		no-map;
+		status = "disabled";
+	};
 };
 
 &v3d {
@@ -76,8 +88,4 @@
 
 &vchiq {
 	interrupts = <GIC_SPI 34 IRQ_TYPE_LEVEL_HIGH>;
-};
-
-&xhci {
-	power-domains = <&power RPI_POWER_DOMAIN_USB>;
 };
