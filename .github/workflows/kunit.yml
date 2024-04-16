@@ -2,10 +2,10 @@ name: KUnit Tests
 
 on:
   pull_request:
-    branches: [ "rpi-*"]
-
+    branches: [ "main" ]
   push:
-    branches: [ "rpi-*"]
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   core:

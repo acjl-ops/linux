@@ -1,18 +1,14 @@
-name: Pi dtoverlay checks
+name: Device-tree overlay checks
 
 on:
   pull_request:
-    paths-ignore:
-      - '.github/**'
-    branches: [ "rpi-*" ]
+    branches: [ "main" ]
   push:
-    paths-ignore:
-      - '.github/**'
-    branches: [ "rpi-*" ]
+    branches: [ "main" ]
   workflow_dispatch:
 
 env:
-  UTILS_DIR: "${{github.workspace}}/utils"
+  UTILS_DIR: "${{github.workspace}}/rpi-utils"
 
 jobs:
   dtoverlaycheck:
@@ -30,7 +26,7 @@ jobs:
         fetch-depth: 1
         clean: true
 
-    - name: overlaycheck
+    - name: Raspberry Pi device-tree overlay checks
       run: |
         git clone https://github.com/raspberrypi/utils ${{env.UTILS_DIR}}
         cd ${{env.UTILS_DIR}}
