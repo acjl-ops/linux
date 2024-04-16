@@ -2,8 +2,8 @@
 VERSION = 6
 PATCHLEVEL = 8
 SUBLEVEL = 6
-EXTRAVERSION = -zen1
-NAME = Finding Humor In Nothing
+EXTRAVERSION = -acjl1
+NAME = Turtles are amazing
 
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
