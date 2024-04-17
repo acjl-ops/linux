@@ -1,0 +1,185 @@
+name: Build
+
+on:
+  pull_request:
+    branches: [ "main" ]
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [ 'htmldocs', 'xmldocs', 'latexdocs', 'pdfdocs', 'epubdocs', 'texinfodocs', 'linkcheckdocs' ]
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Get and install necessary toolchains
+        run: |
+          sudo apt-get update
+          sudo apt-get install texlive texlive-latex-extra
+
+          pip install sphinx pyyaml
+        timeout-minutes: 15
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          clean: true
+
+      - name: Build documentation
+        run: |
+          mkdir ${{github.workspace}}/build
+          make O=${{github.workspace}}/build -j$(nproc --all) ${{matrix.target}}
+
+      - name: Package build artifacts
+        run: tar -cvf docs_${{matrix.target}}.tar -C ${{github.workspace}}/build .
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs_${{matrix.target}}
+          path: docs_${{matrix.target}}.tar
+          retention-days: 90
+
+  kernel:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm
+            defconfig: bcm2835_defconfig
+          - arch: arm
+            defconfig: bcmrpi_defconfig
+          - arch: arm
+            defconfig: bcm2709_defconfig
+          - arch: arm
+            defconfig: bcm2711_defconfig
+
+          - arch: arm64
+            defconfig: defconfig
+          - arch: arm64
+            defconfig: bcm2711_defconfig
+          - arch: arm64
+            defconfig: bcm2712_defconfig
+
+          - arch: x86
+            defconfig: i386_defconfig
+          - arch: x86
+            defconfig: x86_64_defconfig
+
+    env:
+      ARCH: ${{matrix.arch}}
+
+    steps:
+      - name: Get and install necessary toolchains
+        run: |
+          sudo apt-get update
+
+          # sudo apt-get build-dep linux linux-image-unsigned-$(uname -r)
+          sudo apt-get install gcc build-essential libfdt-dev device-tree-compiler \
+            libncurses-dev gawk flex bison openssl libssl-dev dkms libelf-dev libudev-dev \
+            libpci-dev libiberty-dev autoconf llvm
+
+          if [[ "${{matrix.arch}}" == "arm"* ]]; then
+            sudo apt-get install gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu qemu-system-arm
+          fi
+        timeout-minutes: 15
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          clean: true
+
+      - name: Get Raspberry Pi device-tree overlay checker
+        run: |
+          git clone https://github.com/raspberrypi/utils "${{github.workspace}}/rpi-utils"
+          cd "${{github.workspace}}/rpi-utils"
+          pwd
+          mkdir build
+          cd build
+          pwd
+          cmake ..
+          make -j$(nproc --all)
+          sudo make install
+
+      - name: Prepare build
+        run: |
+          mkdir ${{github.workspace}}/build
+
+          if [[ "$ARCH" == "arm64" ]]; then
+            export CROSS_COMPILE=aarch64-linux-gnu-
+            export IMAGE=Image.gz
+          elif [[ "${{matrix.arch}}" == "arm" ]]; then
+            export CROSS_COMPILE=arm-linux-gnueabihf-
+            export IMAGE=zImage
+          else
+            export IMAGE=bzImage
+          fi
+          echo "CROSS_COMPILE=${CROSS_COMPILE}" >> $GITHUB_ENV
+          echo "IMAGE=${IMAGE}" >> $GITHUB_ENV
+
+          make O=${{github.workspace}}/build ${{matrix.defconfig}}
+          scripts/config --file ${{github.workspace}}/build/.config --set-val CONFIG_WERROR y
+
+          make O=${{github.workspace}}/build archprepare
+
+      - name: Build device-tree overlays
+        run: |
+          if [[ "$ARCH" == "arm"* ]]; then
+            mkdir -p ${{github.workspace}}/install/boot/overlays
+
+            make O=${{github.workspace}}/build -j$(nproc --all) dtbs
+
+            cp ${{github.workspace}}/build/scripts/dtc/dtc ${{github.workspace}}/scripts/dtc/dtc
+            ${{github.workspace}}/rpi-utils/overlaycheck/overlaycheck
+          else
+            echo Skipping device-tree overlays build for "$ARCH"
+          fi
+
+      - name: Build kernel
+        run: make O=${{github.workspace}}/build -j$(nproc --all) vmlinux
+
+      - name: Build kernel modules
+        run: |
+          make O=${{github.workspace}}/build -j$(nproc --all) modules
+          make O=${{github.workspace}}/build \
+            INSTALL_PATH=${{github.workspace}}/install \
+            INSTALL_MOD_PATH=${{github.workspace}}/install \
+            modules_install
+
+      - name: Build kernel image
+        run: |
+          mkdir -p ${{github.workspace}}/install
+
+          make O=${{github.workspace}}/build -j$(nproc --all) $IMAGE
+          make O=${{github.workspace}}/build \
+            INSTALL_PATH=${{github.workspace}}/install \
+            install
+
+      - name: Run kunit testsuite
+        run: |
+          if [[ "$ARCH" == "arm"* ]]; then
+            ./tools/testing/kunit/kunit.py run \
+              --kunitconfig=drivers/gpu/drm/vc4/tests \
+              --cross_compile=$CROSS_COMPILE --arch=$ARCH
+          else
+            ./tools/testing/kunit/kunit.py run \
+              --kunitconfig=drivers/gpu/drm/tests
+          fi
+
+      - name: Package build artifacts
+        run: tar -cvf kernel_${{matrix.arch}}_${{matrix.defconfig}}.tar -C ${{github.workspace}}/install .
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernel_${{matrix.arch}}_${{matrix.defconfig}}
+          path: kernel_${{matrix.arch}}_${{matrix.defconfig}}.tar
+          retention-days: 90
