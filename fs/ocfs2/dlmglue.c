@@ -787,7 +787,7 @@ void ocfs2_lock_res_free(struct ocfs2_lock_res *res)
 			res->l_name, res->l_ex_holders);
 
 	/* Need to clear out the lock status block for the dlm */
-	memset(&res->l_lksb, 0, sizeof(res->l_lksb));
+	memset(&res->l_lksb, 0, sizeof(struct ocfs2_dlm_lksb));
 
 	res->l_flags = 0UL;
 }
