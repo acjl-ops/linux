@@ -61,6 +61,16 @@ jobs:
             defconfig: bcm2709_defconfig
           - arch: arm
             defconfig: bcm2711_defconfig
+          - arch: arm
+            defconfig: multi_v4t_defconfig
+          - arch: arm
+            defconfig: multi_v5_defconfig
+          - arch: arm
+            defconfig: multi_v7_defconfig
+          - arch: arm
+            defconfig: mvebu_v5_defconfig
+          - arch: arm
+            defconfig: mvebu_v7_defconfig
 
           - arch: arm64
             defconfig: defconfig
@@ -68,6 +78,8 @@ jobs:
             defconfig: bcm2711_defconfig
           - arch: arm64
             defconfig: bcm2712_defconfig
+          - arch: arm64
+            defconfig: bcmrpi3_defconfig
 
           - arch: x86
             defconfig: i386_defconfig
