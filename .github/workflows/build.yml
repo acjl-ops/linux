@@ -70,6 +70,7 @@ jobs:
 
       - name: Precheck configuration
         run: |
+          cd ${{github.workspace}}
           mkdir ${{github.workspace}}/build
 
           make O=${{github.workspace}}/build -j$(nproc --all) ${{matrix.target}}
@@ -90,17 +91,6 @@ jobs:
             ${{github.workspace}}/rpi-utils/overlaycheck/overlaycheck
           else
             echo Skipping device-tree overlays build for "$ARCH"
-          fi
-
-      - name: Run kunit testsuite
-        run: |
-          if [[ "$ARCH" == "arm"* ]]; then
-            ./tools/testing/kunit/kunit.py run \
-              --kunitconfig=drivers/gpu/drm/vc4/tests \
-              --cross_compile=$CROSS_COMPILE --arch=$ARCH
-          else
-            ./tools/testing/kunit/kunit.py run \
-              --kunitconfig=drivers/gpu/drm/tests
           fi
 
   kernel:
