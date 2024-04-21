@@ -26,7 +26,10 @@ jobs:
       - name: Build documentation
         run: |
           mkdir ${{github.workspace}}/build
-          make O=${{github.workspace}}/build -j$(nproc --all) ${{matrix.target}}
+          pip install -r Documentation/sphinx/requirements.txt
+          
+          ./scripts/sphinx-pre-install
+          make SPHINXOPTS=-v O=${{github.workspace}}/build -j$(nproc --all) ${{matrix.target}}
 
       - name: Package build artifacts
         run: tar -cvf docs_${{matrix.target}}.tar -C ${{github.workspace}}/build .
