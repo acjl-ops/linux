@@ -82,6 +82,8 @@ jobs:
             defconfig: bcmrpi3_defconfig
 
           - arch: x86
+            defconfig: defconfig
+          - arch: x86
             defconfig: i386_defconfig
           - arch: x86
             defconfig: x86_64_defconfig
