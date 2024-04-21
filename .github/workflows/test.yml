@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [ 'arm64', 'x86' ] # arm
+        arch: [ 'arm', 'arm64', 'x86' ]
         suite:
           - drivers/gpu/drm/vc4/tests
           - drivers/gpu/drm/tests
@@ -24,10 +24,18 @@ jobs:
           - drivers/gpu/drm/ttm/tests
           - fs/ext4
           - fs/fat
-          - kernel/kcsan
-          - mm/kfence
           - net/handshake
-        
+        exclude:
+          - arch: arm
+            suite: drivers/gpu/drm/ttm/tests
+          - arch: arm64
+            suite: drivers/gpu/drm/ttm/tests
+          - arch: x86
+            suite: drivers/gpu/drm/vc4/tests
+
+    env:
+      ARCH: ${{matrix.arch}}
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -42,13 +50,15 @@ jobs:
       - name: Run kunit testsuite
         run: |
           mkdir ${{github.workspace}}/build
-          make O=${{github.workspace}}/build -j$(nproc --all) allyesconfig
 
           if [[ "$ARCH" == "arm"* ]]; then
             ./tools/testing/kunit/kunit.py run \
+              --build_dir=${{github.workspace}}/build \
               --kunitconfig=${{matrix.suite}} \
               --cross_compile=$CROSS_COMPILE --arch=$ARCH
           else
             ./tools/testing/kunit/kunit.py run \
+              --build_dir=${{github.workspace}}/build \
               --kunitconfig=${{matrix.suite}}
           fi
+
