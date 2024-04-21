@@ -1,0 +1,196 @@
+name: Build
+
+on:
+  pull_request:
+    branches: [ "main" ]
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [ 'htmldocs', 'xmldocs', 'latexdocs', 'pdfdocs', 'epubdocs', 'texinfodocs' ] # linkcheckdocs
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          clean: true
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-env
+
+      - name: Build documentation
+        run: |
+          mkdir ${{github.workspace}}/build
+          pip install -r Documentation/sphinx/requirements.txt
+
+          ./scripts/sphinx-pre-install
+          make SPHINXOPTS=-v O=${{github.workspace}}/build -j$(nproc --all) ${{matrix.target}}
+
+      - name: Package build artifacts
+        run: tar -cvf docs_${{matrix.target}}.tar -C ${{github.workspace}}/build .
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs_${{matrix.target}}
+          path: docs_${{matrix.target}}.tar
+          retention-days: 90
+
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [ 'alldefconfig', 'allmodconfig', 'allnoconfig', 'allyesconfig' ]
+        arch: [ 'arm64', 'x86' ] # arm
+
+    env:
+      ARCH: ${{matrix.arch}}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          clean: true
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-env
+        with:
+          arch: ${{matrix.arch}}
+
+      - name: Get Raspberry Pi device-tree overlay checker
+        run: |
+          git clone https://github.com/raspberrypi/utils "${{github.workspace}}/rpi-utils"
+          cd "${{github.workspace}}/rpi-utils"
+          pwd
+          mkdir build
+          cd build
+          pwd
+          cmake ..
+          make -j$(nproc --all)
+          sudo make install
+
+      - name: Precheck configuration
+        run: |
+          cd ${{github.workspace}}
+          mkdir ${{github.workspace}}/build
+
+          make O=${{github.workspace}}/build -j$(nproc --all) ${{matrix.target}}
+          make O=${{github.workspace}}/build -j$(nproc --all) archprepare
+          
+          # Disabled checks
+          # make O=${{github.workspace}}/build -j$(nproc --all) includecheck
+          # make O=${{github.workspace}}/build -j$(nproc --all) kselftest
+
+      - name: Build device-tree overlays
+        run: |
+          if [[ "$ARCH" == "arm"* ]]; then
+            mkdir -p ${{github.workspace}}/install/boot/overlays
+
+            make O=${{github.workspace}}/build -j$(nproc --all) dtbs
+
+            cp ${{github.workspace}}/build/scripts/dtc/dtc ${{github.workspace}}/scripts/dtc/dtc
+            ${{github.workspace}}/rpi-utils/overlaycheck/overlaycheck
+          else
+            echo Skipping device-tree overlays build for "$ARCH"
+          fi
+
+  kernel:
+    needs: check
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm
+            defconfig: bcm2835_defconfig
+          # - arch: arm
+          #   defconfig: bcmrpi_defconfig
+          - arch: arm
+            defconfig: bcm2709_defconfig
+          - arch: arm
+            defconfig: bcm2711_defconfig
+          # - arch: arm
+          #   defconfig: multi_v4t_defconfig
+          - arch: arm
+            defconfig: multi_v5_defconfig
+          # - arch: arm
+          #   defconfig: multi_v7_defconfig
+          - arch: arm
+            defconfig: mvebu_v5_defconfig
+          - arch: arm
+            defconfig: mvebu_v7_defconfig
+
+          - arch: arm64
+            defconfig: defconfig
+          - arch: arm64
+            defconfig: bcm2711_defconfig
+          - arch: arm64
+            defconfig: bcm2712_defconfig
+          - arch: arm64
+            defconfig: bcmrpi3_defconfig
+
+          - arch: x86
+            defconfig: defconfig
+          - arch: x86
+            defconfig: i386_defconfig
+          - arch: x86
+            defconfig: x86_64_defconfig
+
+    env:
+      ARCH: ${{matrix.arch}}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          clean: true
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-env
+        with:
+          arch: ${{matrix.arch}}
+
+      - name: Prepare build
+        run: |
+          mkdir ${{github.workspace}}/build
+
+          make O=${{github.workspace}}/build -j$(nproc --all) ${{matrix.defconfig}}
+          make O=${{github.workspace}}/build -j$(nproc --all) archprepare
+
+          scripts/config --file ${{github.workspace}}/build/.config --set-val CONFIG_WERROR y
+
+      - name: Build kernel
+        run: make O=${{github.workspace}}/build -j$(nproc --all) vmlinux
+
+      - name: Build kernel modules
+        run: |
+          make O=${{github.workspace}}/build -j$(nproc --all) modules
+          make O=${{github.workspace}}/build \
+            INSTALL_PATH=${{github.workspace}}/install \
+            INSTALL_MOD_PATH=${{github.workspace}}/install \
+            modules_install
+
+      - name: Build kernel image
+        run: |
+          mkdir -p ${{github.workspace}}/install
+
+          make O=${{github.workspace}}/build -j$(nproc --all) $IMAGE
+          make O=${{github.workspace}}/build \
+            INSTALL_PATH=${{github.workspace}}/install \
+            install
+
+      - name: Package build artifacts
+        run: tar -cvf kernel_${{matrix.arch}}_${{matrix.defconfig}}.tar -C ${{github.workspace}}/install .
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernel_${{matrix.arch}}_${{matrix.defconfig}}
+          path: kernel_${{matrix.arch}}_${{matrix.defconfig}}.tar
+          retention-days: 90

@@ -1,0 +1,64 @@
+name: Testing
+
+on:
+  pull_request:
+    branches: [ "main" ]
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  kunit:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [ 'arm', 'arm64', 'x86' ]
+        suite:
+          - drivers/gpu/drm/vc4/tests
+          - drivers/gpu/drm/tests
+          - drivers/fpga/tests
+          - drivers/base/test
+          - drivers/input/tests
+          - drivers/hid
+          - drivers/gpu/drm/ttm/tests
+          - fs/ext4
+          - fs/fat
+          - net/handshake
+        exclude:
+          - arch: arm
+            suite: drivers/gpu/drm/ttm/tests
+          - arch: arm64
+            suite: drivers/gpu/drm/ttm/tests
+          - arch: x86
+            suite: drivers/gpu/drm/vc4/tests
+
+    env:
+      ARCH: ${{matrix.arch}}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          clean: true
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-env
+        with:
+          arch: ${{matrix.arch}}
+
+      - name: Run kunit testsuite
+        run: |
+          mkdir ${{github.workspace}}/build
+
+          if [[ "$ARCH" == "arm"* ]]; then
+            ./tools/testing/kunit/kunit.py run \
+              --build_dir=${{github.workspace}}/build \
+              --kunitconfig=${{matrix.suite}} \
+              --cross_compile=$CROSS_COMPILE --arch=$ARCH
+          else
+            ./tools/testing/kunit/kunit.py run \
+              --build_dir=${{github.workspace}}/build \
+              --kunitconfig=${{matrix.suite}}
+          fi
+
