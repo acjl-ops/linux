@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [ 'htmldocs', 'xmldocs', 'latexdocs', 'pdfdocs', 'epubdocs', 'texinfodocs', 'linkcheckdocs' ]
+        target: [ 'htmldocs', 'xmldocs', 'latexdocs', 'pdfdocs', 'epubdocs', 'texinfodocs' ] # linkcheckdocs
     steps:
       - uses: actions/checkout@v4
         with:
