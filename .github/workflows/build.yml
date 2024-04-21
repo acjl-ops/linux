@@ -27,7 +27,7 @@ jobs:
         run: |
           mkdir ${{github.workspace}}/build
           pip install -r Documentation/sphinx/requirements.txt
-          
+
           ./scripts/sphinx-pre-install
           make SPHINXOPTS=-v O=${{github.workspace}}/build -j$(nproc --all) ${{matrix.target}}
 
@@ -48,6 +48,10 @@ jobs:
       matrix:
         target: [ 'alldefconfig', 'allmodconfig', 'allnoconfig', 'allyesconfig' ]
         arch: [ 'arm64', 'x86' ] # arm
+
+    env:
+      ARCH: ${{matrix.arch}}
+
     steps:
       - uses: actions/checkout@v4
         with:
