@@ -15,22 +15,13 @@ jobs:
       matrix:
         target: [ 'htmldocs', 'xmldocs', 'latexdocs', 'pdfdocs', 'epubdocs', 'texinfodocs', 'linkcheckdocs' ]
     steps:
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Get and install necessary toolchains
-        run: |
-          sudo apt-get update
-          sudo apt-get install texlive texlive-latex-extra
-
-          pip install sphinx pyyaml
-        timeout-minutes: 15
-
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
           clean: true
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-env
 
       - name: Build documentation
         run: |
@@ -47,7 +38,73 @@ jobs:
           path: docs_${{matrix.target}}.tar
           retention-days: 90
 
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [ 'alldefconfig', 'allmodconfig', 'allnoconfig', 'allyesconfig' ]
+        arch: [ 'arm64', 'x86' ] # arm
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          clean: true
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-env
+        with:
+          arch: ${{matrix.arch}}
+
+      - name: Get Raspberry Pi device-tree overlay checker
+        run: |
+          git clone https://github.com/raspberrypi/utils "${{github.workspace}}/rpi-utils"
+          cd "${{github.workspace}}/rpi-utils"
+          pwd
+          mkdir build
+          cd build
+          pwd
+          cmake ..
+          make -j$(nproc --all)
+          sudo make install
+
+      - name: Precheck configuration
+        run: |
+          mkdir ${{github.workspace}}/build
+
+          make O=${{github.workspace}}/build -j$(nproc --all) ${{matrix.target}}
+          make O=${{github.workspace}}/build -j$(nproc --all) archprepare
+          
+          # Disabled checks
+          # make O=${{github.workspace}}/build -j$(nproc --all) includecheck
+          # make O=${{github.workspace}}/build -j$(nproc --all) kselftest
+
+      - name: Build device-tree overlays
+        run: |
+          if [[ "$ARCH" == "arm"* ]]; then
+            mkdir -p ${{github.workspace}}/install/boot/overlays
+
+            make O=${{github.workspace}}/build -j$(nproc --all) dtbs
+
+            cp ${{github.workspace}}/build/scripts/dtc/dtc ${{github.workspace}}/scripts/dtc/dtc
+            ${{github.workspace}}/rpi-utils/overlaycheck/overlaycheck
+          else
+            echo Skipping device-tree overlays build for "$ARCH"
+          fi
+
+      - name: Run kunit testsuite
+        run: |
+          if [[ "$ARCH" == "arm"* ]]; then
+            ./tools/testing/kunit/kunit.py run \
+              --kunitconfig=drivers/gpu/drm/vc4/tests \
+              --cross_compile=$CROSS_COMPILE --arch=$ARCH
+          else
+            ./tools/testing/kunit/kunit.py run \
+              --kunitconfig=drivers/gpu/drm/tests
+          fi
+
   kernel:
+    needs: check
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -92,70 +149,24 @@ jobs:
       ARCH: ${{matrix.arch}}
 
     steps:
-      - name: Get and install necessary toolchains
-        run: |
-          sudo apt-get update
-
-          # sudo apt-get build-dep linux linux-image-unsigned-$(uname -r)
-          sudo apt-get install gcc build-essential libfdt-dev device-tree-compiler \
-            libncurses-dev gawk flex bison openssl libssl-dev dkms libelf-dev libudev-dev \
-            libpci-dev libiberty-dev autoconf llvm
-
-          if [[ "${{matrix.arch}}" == "arm"* ]]; then
-            sudo apt-get install gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu qemu-system-arm
-          fi
-        timeout-minutes: 15
-
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
           clean: true
 
-      - name: Get Raspberry Pi device-tree overlay checker
-        run: |
-          git clone https://github.com/raspberrypi/utils "${{github.workspace}}/rpi-utils"
-          cd "${{github.workspace}}/rpi-utils"
-          pwd
-          mkdir build
-          cd build
-          pwd
-          cmake ..
-          make -j$(nproc --all)
-          sudo make install
+      - name: Setup environment
+        uses: ./.github/actions/setup-env
+        with:
+          arch: ${{matrix.arch}}
 
       - name: Prepare build
         run: |
           mkdir ${{github.workspace}}/build
 
-          if [[ "$ARCH" == "arm64" ]]; then
-            export CROSS_COMPILE=aarch64-linux-gnu-
-            export IMAGE=Image.gz
-          elif [[ "${{matrix.arch}}" == "arm" ]]; then
-            export CROSS_COMPILE=arm-linux-gnueabihf-
-            export IMAGE=zImage
-          else
-            export IMAGE=bzImage
-          fi
-          echo "CROSS_COMPILE=${CROSS_COMPILE}" >> $GITHUB_ENV
-          echo "IMAGE=${IMAGE}" >> $GITHUB_ENV
+          make O=${{github.workspace}}/build -j$(nproc --all) ${{matrix.defconfig}}
+          make O=${{github.workspace}}/build -j$(nproc --all) archprepare
 
-          make O=${{github.workspace}}/build ${{matrix.defconfig}}
           scripts/config --file ${{github.workspace}}/build/.config --set-val CONFIG_WERROR y
-
-          make O=${{github.workspace}}/build archprepare
-
-      - name: Build device-tree overlays
-        run: |
-          if [[ "$ARCH" == "arm"* ]]; then
-            mkdir -p ${{github.workspace}}/install/boot/overlays
-
-            make O=${{github.workspace}}/build -j$(nproc --all) dtbs
-
-            cp ${{github.workspace}}/build/scripts/dtc/dtc ${{github.workspace}}/scripts/dtc/dtc
-            ${{github.workspace}}/rpi-utils/overlaycheck/overlaycheck
-          else
-            echo Skipping device-tree overlays build for "$ARCH"
-          fi
 
       - name: Build kernel
         run: make O=${{github.workspace}}/build -j$(nproc --all) vmlinux
@@ -176,17 +187,6 @@ jobs:
           make O=${{github.workspace}}/build \
             INSTALL_PATH=${{github.workspace}}/install \
             install
-
-      - name: Run kunit testsuite
-        run: |
-          if [[ "$ARCH" == "arm"* ]]; then
-            ./tools/testing/kunit/kunit.py run \
-              --kunitconfig=drivers/gpu/drm/vc4/tests \
-              --cross_compile=$CROSS_COMPILE --arch=$ARCH
-          else
-            ./tools/testing/kunit/kunit.py run \
-              --kunitconfig=drivers/gpu/drm/tests
-          fi
 
       - name: Package build artifacts
         run: tar -cvf kernel_${{matrix.arch}}_${{matrix.defconfig}}.tar -C ${{github.workspace}}/install .

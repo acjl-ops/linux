@@ -1,0 +1,40 @@
+name: Setup environment
+inputs:
+  arch:
+    required: false
+    default: x86_64
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Get and install necessary toolchains
+      shell: bash
+      run: |
+        sudo apt-get update
+
+        # sudo apt-get build-dep linux linux-image-unsigned-$(uname -r)
+        sudo apt-get install gcc build-essential libfdt-dev device-tree-compiler \
+          libncurses-dev gawk flex bison openssl libssl-dev dkms libelf-dev libudev-dev \
+          libpci-dev libiberty-dev autoconf llvm \
+          texlive texlive-latex-extra
+
+        if [[ "${{matrix.arch}}" == "arm"* ]]; then
+          sudo apt-get install gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu qemu-system-arm
+        fi
+        
+        pip install sphinx pyyaml
+
+        if [[ "$ARCH" == "arm64" ]]; then
+          export CROSS_COMPILE=aarch64-linux-gnu-
+          export IMAGE=Image.gz
+        elif [[ "${{matrix.arch}}" == "arm" ]]; then
+          export CROSS_COMPILE=arm-linux-gnueabihf-
+          export IMAGE=zImage
+        else
+          export IMAGE=bzImage
+        fi
+        echo "CROSS_COMPILE=${CROSS_COMPILE}" >> $GITHUB_ENV
+        echo "IMAGE=${IMAGE}" >> $GITHUB_ENV
