@@ -49,6 +49,7 @@ config SND_BCM2708_SOC_HIFIBERRY_DAC
 
 config SND_BCM2708_SOC_HIFIBERRY_DACPLUS
         tristate "Support for HifiBerry DAC+"
+        select OF_DYNAMIC
         select SND_SOC_PCM512x
         select SND_SOC_TPA6130A2
         select COMMON_CLK_HIFIBERRY_DACPRO
@@ -72,6 +73,7 @@ config SND_BCM2708_SOC_HIFIBERRY_DACPLUSADC
 
 config SND_BCM2708_SOC_HIFIBERRY_DACPLUSADCPRO
         tristate "Support for HifiBerry DAC+ADC PRO"
+        select OF_DYNAMIC
         select SND_SOC_PCM512x_I2C
         select SND_SOC_PCM186X_I2C
         select SND_SOC_TPA6130A2
