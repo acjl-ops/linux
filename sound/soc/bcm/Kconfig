@@ -29,11 +29,13 @@ config SND_BCM63XX_I2S_WHISTLER
 
 config SND_BCM2708_SOC_CHIPDIP_DAC
          tristate "Support for the ChipDip DAC"
+         depends on (ARM || ARM64)
          help
           Say Y or M if you want to add support for the ChipDip DAC soundcard
 
 config SND_BCM2708_SOC_GOOGLEVOICEHAT_SOUNDCARD
 	tristate "Support for Google voiceHAT soundcard"
+    depends on (ARM || ARM64)
 	select SND_SOC_VOICEHAT
 	select SND_RPI_SIMPLE_SOUNDCARD
 	help
@@ -41,6 +43,7 @@ config SND_BCM2708_SOC_GOOGLEVOICEHAT_SOUNDCARD
 
 config SND_BCM2708_SOC_HIFIBERRY_DAC
         tristate "Support for HifiBerry DAC and DAC8X"
+        depends on (ARM || ARM64)
         select SND_SOC_PCM5102A
         select SND_RPI_SIMPLE_SOUNDCARD
         help
@@ -49,6 +52,8 @@ config SND_BCM2708_SOC_HIFIBERRY_DAC
 
 config SND_BCM2708_SOC_HIFIBERRY_DACPLUS
         tristate "Support for HifiBerry DAC+"
+        depends on (ARM || ARM64)
+        select OF
         select OF_DYNAMIC
         select SND_SOC_PCM512x
         select SND_SOC_TPA6130A2
@@ -58,6 +63,7 @@ config SND_BCM2708_SOC_HIFIBERRY_DACPLUS
 
 config SND_BCM2708_SOC_HIFIBERRY_DACPLUSHD
         tristate "Support for HifiBerry DAC+ HD"
+        depends on (ARM || ARM64)
         select SND_SOC_PCM179X_I2C
         select COMMON_CLK_HIFIBERRY_DACPLUSHD
         help
@@ -65,6 +71,7 @@ config SND_BCM2708_SOC_HIFIBERRY_DACPLUSHD
 
 config SND_BCM2708_SOC_HIFIBERRY_DACPLUSADC
         tristate "Support for HifiBerry DAC+ADC"
+        depends on (ARM || ARM64)
         select SND_SOC_PCM512x_I2C
 	select SND_SOC_DMIC
         select COMMON_CLK_HIFIBERRY_DACPRO
@@ -73,6 +80,8 @@ config SND_BCM2708_SOC_HIFIBERRY_DACPLUSADC
 
 config SND_BCM2708_SOC_HIFIBERRY_DACPLUSADCPRO
         tristate "Support for HifiBerry DAC+ADC PRO"
+        depends on (ARM || ARM64)
+        select OF
         select OF_DYNAMIC
         select SND_SOC_PCM512x_I2C
         select SND_SOC_PCM186X_I2C
@@ -83,18 +92,21 @@ config SND_BCM2708_SOC_HIFIBERRY_DACPLUSADCPRO
 
 config SND_BCM2708_SOC_HIFIBERRY_DACPLUSDSP
         tristate "Support for HifiBerry DAC+DSP"
-	select SND_RPI_SIMPLE_SOUNDCARD
+        depends on (ARM || ARM64)
+        select SND_RPI_SIMPLE_SOUNDCARD
         help
          Say Y or M if you want to add support for HifiBerry DSP-DAC.
 
 config SND_BCM2708_SOC_HIFIBERRY_DIGI
         tristate "Support for HifiBerry Digi"
+        depends on (ARM || ARM64)
         select SND_SOC_WM8804
         help
          Say Y or M if you want to add support for HifiBerry Digi S/PDIF output board.
 
 config SND_BCM2708_SOC_HIFIBERRY_AMP
         tristate "Support for the HifiBerry Amp"
+        depends on (ARM || ARM64)
         select SND_SOC_TAS5713
         select SND_RPI_SIMPLE_SOUNDCARD
         help
@@ -102,6 +114,7 @@ config SND_BCM2708_SOC_HIFIBERRY_AMP
 
 config SND_BCM2708_SOC_PIFI_40
          tristate "Support for the PiFi-40 amp"
+         depends on (ARM || ARM64)
          select SND_SOC_TAS571X
          select SND_PIFI_40
          help
@@ -109,6 +122,7 @@ config SND_BCM2708_SOC_PIFI_40
 
 config SND_BCM2708_SOC_RPI_CIRRUS
         tristate "Support for Cirrus Logic Audio Card"
+         depends on (ARM || ARM64)
         select SND_SOC_WM5102
         select SND_SOC_WM8804
         help
@@ -117,6 +131,7 @@ config SND_BCM2708_SOC_RPI_CIRRUS
 
 config SND_BCM2708_SOC_RPI_DAC
         tristate "Support for RPi-DAC"
+         depends on (ARM || ARM64)
         select SND_SOC_PCM1794A
         select SND_RPI_SIMPLE_SOUNDCARD
         help
@@ -124,12 +139,14 @@ config SND_BCM2708_SOC_RPI_DAC
 
 config SND_BCM2708_SOC_RPI_PROTO
 	tristate "Support for Rpi-PROTO"
+    depends on (ARM || ARM64)
 	select SND_SOC_WM8731_I2C
 	help
 	  Say Y or M if you want to add support for Audio Codec Board PROTO (WM8731).
 
 config SND_BCM2708_SOC_JUSTBOOM_BOTH
 	tristate "Support for simultaneous JustBoom Digi and JustBoom DAC"
+    depends on (ARM || ARM64)
 	select SND_SOC_WM8804
 	select SND_SOC_PCM512x
 	help
@@ -141,12 +158,14 @@ config SND_BCM2708_SOC_JUSTBOOM_BOTH
 
 config SND_BCM2708_SOC_JUSTBOOM_DAC
 	tristate "Support for JustBoom DAC"
+    depends on (ARM || ARM64)
 	select SND_SOC_PCM512x
 	help
 	  Say Y or M if you want to add support for JustBoom DAC.
 
 config SND_BCM2708_SOC_JUSTBOOM_DIGI
 	tristate "Support for JustBoom Digi"
+    depends on (ARM || ARM64)
 	select SND_SOC_WM8804
         select SND_RPI_WM8804_SOUNDCARD
 	help
@@ -154,18 +173,21 @@ config SND_BCM2708_SOC_JUSTBOOM_DIGI
 
 config SND_BCM2708_SOC_IQAUDIO_CODEC
 	tristate "Support for IQaudIO-CODEC"
+    depends on (ARM || ARM64)
 	select SND_SOC_DA7213
 	help
 	  Say Y or M if you want to add support for IQaudIO-CODEC.
 
 config SND_BCM2708_SOC_IQAUDIO_DAC
 	tristate "Support for IQaudIO-DAC"
+    depends on (ARM || ARM64)
 	select SND_SOC_PCM512x_I2C
 	help
 	  Say Y or M if you want to add support for IQaudIO-DAC.
 
 config SND_BCM2708_SOC_IQAUDIO_DIGI
 	tristate "Support for IQAudIO Digi"
+    depends on (ARM || ARM64)
 	select SND_SOC_WM8804
 	select SND_RPI_WM8804_SOUNDCARD
 	help
@@ -173,12 +195,14 @@ config SND_BCM2708_SOC_IQAUDIO_DIGI
 
 config SND_BCM2708_SOC_I_SABRE_Q2M
         tristate "Support for Audiophonics I-Sabre Q2M DAC"
+        depends on (ARM || ARM64)
         select SND_SOC_I_SABRE_CODEC
         help
         Say Y or M if you want to add support for Audiophonics I-SABRE Q2M DAC
 
 config SND_BCM2708_SOC_ADAU1977_ADC
 	tristate "Support for ADAU1977 ADC"
+    depends on (ARM || ARM64)
 	select SND_SOC_ADAU1977_I2C
 	select SND_RPI_SIMPLE_SOUNDCARD
 	help
@@ -217,30 +241,35 @@ config SND_DIGIDAC1_SOUNDCARD
 
 config SND_BCM2708_SOC_DIONAUDIO_LOCO
 	tristate "Support for Dion Audio LOCO DAC-AMP"
+    depends on (ARM || ARM64)
 	select SND_SOC_PCM5102a
 	help
 	  Say Y or M if you want to add support for Dion Audio LOCO.
 
 config SND_BCM2708_SOC_DIONAUDIO_LOCO_V2
 	tristate "Support for Dion Audio LOCO-V2 DAC-AMP"
+    depends on (ARM || ARM64)
 	select SND_SOC_PCM5122
 	help
 	  Say Y or M if you want to add support for Dion Audio LOCO-V2.
 
 config SND_BCM2708_SOC_ALLO_PIANO_DAC
 	tristate "Support for Allo Piano DAC"
+    depends on (ARM || ARM64)
 	select SND_SOC_PCM512x_I2C
 	help
 	  Say Y or M if you want to add support for Allo Piano DAC.
 
 config SND_BCM2708_SOC_ALLO_PIANO_DAC_PLUS
 	tristate "Support for Allo Piano DAC Plus"
+    depends on (ARM || ARM64)
 	select SND_SOC_PCM512x_I2C
 	help
 	  Say Y or M if you want to add support for Allo Piano DAC Plus.
 
 config SND_BCM2708_SOC_ALLO_BOSS_DAC
 	tristate "Support for Allo Boss DAC"
+    depends on (ARM || ARM64)
 	select SND_SOC_PCM512x_I2C
 	select COMMON_CLK_HIFIBERRY_DACPRO
 	help
@@ -248,6 +277,7 @@ config SND_BCM2708_SOC_ALLO_BOSS_DAC
 
 config SND_BCM2708_SOC_ALLO_BOSS2_DAC
 	tristate "Support for Allo Boss2 DAC"
+    depends on (ARM || ARM64)
 	depends on I2C
 	select REGMAP_I2C
 	select SND_AUDIO_GRAPH_CARD
@@ -256,6 +286,7 @@ config SND_BCM2708_SOC_ALLO_BOSS2_DAC
 
 config SND_BCM2708_SOC_ALLO_DIGIONE
 	tristate "Support for Allo DigiOne"
+    depends on (ARM || ARM64)
 	select SND_SOC_WM8804
 	select SND_RPI_WM8804_SOUNDCARD
 	help
@@ -263,6 +294,7 @@ config SND_BCM2708_SOC_ALLO_DIGIONE
 
 config SND_BCM2708_SOC_ALLO_KATANA_DAC
 	tristate "Support for Allo Katana DAC"
+    depends on (ARM || ARM64)
 	depends on I2C
 	select REGMAP_I2C
 	select SND_AUDIO_GRAPH_CARD
@@ -271,6 +303,7 @@ config SND_BCM2708_SOC_ALLO_KATANA_DAC
 
 config SND_BCM2708_SOC_FE_PI_AUDIO
 	tristate "Support for Fe-Pi-Audio"
+    depends on (ARM || ARM64)
 	select SND_SOC_SGTL5000
 	help
 	  Say Y or M if you want to add support for Fe-Pi-Audio.
@@ -283,11 +316,13 @@ config SND_PISOUND
 
 config SND_RPI_SIMPLE_SOUNDCARD
 	tristate "Support for Raspberry Pi simple soundcards"
+    depends on (ARM || ARM64)
 	help
 	  Say Y or M if you want to add support Raspbery Pi simple soundcards
 
 config SND_RPI_WM8804_SOUNDCARD
 	tristate "Support for Raspberry Pi generic WM8804 soundcards"
+    depends on (ARM || ARM64)
 	help
 	  Say Y or M if you want to add support for the Raspberry Pi
           generic driver for WM8804 based soundcards.
