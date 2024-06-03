@@ -2,7 +2,7 @@ git+https://gitlab.freedesktop.org/gfx-ci/ci-collate@09e7142715c16f54344ddf97013
 termcolor==2.4.0
 
 # ci-collate dependencies
-certifi==2024.2.2
+certifi==2024.6.2
 charset-normalizer==3.3.2
 idna==3.7
 pip==24.0
