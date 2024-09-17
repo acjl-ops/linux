@@ -1329,6 +1329,7 @@ config GPIO_ELKHARTLAKE
 
 config GPIO_FSM
 	tristate "GPIO FSM support"
+	depends on OF
 	help
 	  The GPIO FSM driver allows the creation of state machines for
 	  manipulating GPIOs (both real and virtual), with state transitions
